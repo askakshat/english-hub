@@ -101,6 +101,7 @@
         <div class="nav-item" data-view="notes"><i class="fas fa-sticky-note"></i> Notes</div>
         <div class="nav-item" data-view="quiz"><i class="fas fa-brain"></i> Quiz</div>
         <div class="nav-item" data-view="analytics"><i class="fas fa-chart-line"></i> Analytics</div>
+        <div class="nav-item" data-view="resources"><i class="fas fa-folder"></i> Resources</div>
       </nav>
       <div style="margin-top: auto;" class="glass-card">
         <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;">Overall Progress</div>
@@ -155,6 +156,39 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div class="glass-card"><canvas id="lineChart"></canvas></div>
           <div class="glass-card"><canvas id="barChart"></canvas></div>
+        </div>
+      </section>
+            <section id="view-resources" class="view">
+        <h1 class="view-title">Study Resources</h1>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          <!-- File 1 -->
+          <div class="glass-card text-center">
+            <i class="fas fa-file-pdf" style="font-size: 2rem; color: var(--accent-bright);"></i>
+            <h3 style="font-family: var(--font-head); margin: 0.5rem 0;">Hornbill Notes</h3>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">Class 11 PDF Notes</p>
+            <!-- CHANGE THE href BELOW TO YOUR SUPABASE URL -->
+            <a href="https://gjesturknjnotdvwpjmc.supabase.co/storage/v1/object/public/study-materials/The%20Summer%20of%20the%20Beautiful%20White%20Horse%20NOTES%20(1).pdf" target="_blank" class="btn-mark">Download</a>
+          </div>
+
+          <!-- File 2 -->
+          <div class="glass-card text-center">
+            <i class="fas fa-file-pdf" style="font-size: 2rem; color: var(--accent-bright);"></i>
+            <h3 style="font-family: var(--font-head); margin: 0.5rem 0;">Sample Papers</h3>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">Previous Year Questions</p>
+            <!-- CHANGE THE href BELOW TO YOUR SUPABASE URL -->
+            <a href="PASTE_URL_HERE" target="_blank" class="btn-mark">Download</a>
+          </div>
+
+          <!-- File 3 -->
+          <div class="glass-card text-center">
+            <i class="fas fa-file-pdf" style="font-size: 2rem; color: var(--accent-bright);"></i>
+            <h3 style="font-family: var(--font-head); margin: 0.5rem 0;">Writing Formats</h3>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">Notices, Letters, Articles</p>
+            <!-- CHANGE THE href BELOW TO YOUR SUPABASE URL -->
+            <a href="PASTE_URL_HERE" target="_blank" class="btn-mark">Download</a>
+          </div>
+
         </div>
       </section>
     </main>
