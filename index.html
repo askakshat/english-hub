@@ -162,21 +162,21 @@
 
   <script>
     // ==========================================
-    // SUPABASE CONFIG (MAKE SURE QUOTES ARE KEPT)
+    // SUPABASE CONFIG
     // ==========================================
-    const SUPABASE_URL = 'https://gjesturknjnotdvwpjmc.supabase.co'; // <--- PASTE URL INSIDE THE QUOTES
-    const SUPABASE_KEY = 'sb_publishable_KabsRtlINJnHEVtEDwlEBw_wG_Tz_xY'; // <--- PASTE KEY INSIDE THE QUOTES
+    const SUPABASE_URL = 'https://gjesturknjnotdvwpjmc.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_KabsRtlINJnHEVtEDwlEBw_wG_Tz_xY';
     
-    let supabase = null;
+    // RENAMED VARIABLE to prevent crashing!
+    let supabaseClient = null; 
     const errorEl = document.getElementById('auth-error');
 
-    // Check if user forgot to paste keys
     if (SUPABASE_URL === 'PASTE_YOUR_URL_HERE' || SUPABASE_KEY === 'PASTE_YOUR_ANON_KEY_HERE') {
         errorEl.innerText = "Error: You forgot to paste your Supabase URL and Key in the code!";
         errorEl.style.display = 'block';
     } else {
         try {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         } catch (e) {
             errorEl.innerText = "Error connecting to Supabase. Check console for details.";
             errorEl.style.display = 'block';
@@ -198,7 +198,7 @@
     let currentUser = null;
 
     // ==========================================
-    // EVENT LISTENERS (SAFE FROM REFERENCE ERRORS)
+    // EVENT LISTENERS
     // ==========================================
     document.getElementById('btn-login').addEventListener('click', () => handleAuth('login'));
     document.getElementById('btn-signup').addEventListener('click', () => handleAuth('signup'));
@@ -208,15 +208,15 @@
     // AUTH LOGIC
     // ==========================================
     async function handleAuth(type) {
-      if (!supabase) return; // Don't run if supabase failed to load
+      if (!supabaseClient) return; 
       const email = document.getElementById('auth-email').value;
       const password = document.getElementById('auth-password').value;
       errorEl.style.display = 'none';
 
       try {
         const { data, error } = type === 'login' 
-          ? await supabase.auth.signInWithPassword({ email, password })
-          : await supabase.auth.signUp({ email, password });
+          ? await supabaseClient.auth.signInWithPassword({ email, password })
+          : await supabaseClient.auth.signUp({ email, password });
           
         if (error) throw error;
         if (type === 'signup' && !data.session) {
@@ -231,16 +231,16 @@
     }
 
     async function logout() {
-      if (!supabase) return;
-      await supabase.auth.signOut();
+      if (!supabaseClient) return;
+      await supabaseClient.auth.signOut();
       location.reload();
     }
 
     // ==========================================
     // INITIALIZATION
     // ==========================================
-    if (supabase) {
-      supabase.auth.onAuthStateChange(async (event, session) => {
+    if (supabaseClient) {
+      supabaseClient.auth.onAuthStateChange(async (event, session) => {
         if (session) {
           currentUser = session.user;
           document.getElementById('auth-modal').style.display = 'none';
@@ -254,7 +254,7 @@
     }
 
     async function loadProgress() {
-      const { data } = await supabase.from('progress').select('*').eq('user_id', currentUser.id);
+      const { data } = await supabaseClient.from('progress').select('*').eq('user_id', currentUser.id);
       if (data) {
         appState.completed = {};
         data.forEach(item => {
@@ -303,14 +303,12 @@
           const isDone = appState.completed[ch.id];
           const card = document.createElement('div');
           card.className = 'chapter-card';
-          // Using data attributes instead of inline onclick to prevent errors
           card.innerHTML = `<div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;"><div style="font-weight: 600;">${ch.title}</div><span style="color: var(--accent-bright);">${ch.difficulty}</span></div><div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">Time: ${ch.time}</div><button class="btn-mark toggle-btn" data-id="${ch.id}">${isDone ? '✓ Completed' : 'Mark Done'}</button>`;
           secEl.appendChild(card);
         });
         container.appendChild(secEl);
       });
 
-      // Attach listeners to newly created buttons
       document.querySelectorAll('.toggle-btn').forEach(btn => {
         btn.addEventListener('click', (e) => toggleComplete(e.target.getAttribute('data-id')));
       });
@@ -318,7 +316,7 @@
 
     async function toggleComplete(id) {
       appState.completed[id] = !appState.completed[id];
-      await supabase.from('progress').upsert({ user_id: currentUser.id, chapter_id: id, is_completed: appState.completed[id] });
+      await supabaseClient.from('progress').upsert({ user_id: currentUser.id, chapter_id: id, is_completed: appState.completed[id] });
       renderSyllabus();
       updateProgress();
     }
