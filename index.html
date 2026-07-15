@@ -82,8 +82,8 @@
       <input type="email" id="auth-email" class="auth-input" placeholder="Email address">
       <input type="password" id="auth-password" class="auth-input" placeholder="Password">
       
-      <button onclick="handleAuth('login')" class="btn-primary">Log In</button>
-      <button onclick="handleAuth('signup')" class="btn-secondary">Sign Up</button>
+      <button id="btn-login" class="btn-primary">Log In</button>
+      <button id="btn-signup" class="btn-secondary">Sign Up</button>
       
       <div id="auth-error" style="color: var(--danger); font-size: 0.8rem; margin-top: 1rem; text-align: center; display: none;"></div>
     </div>
@@ -105,7 +105,7 @@
       <div style="margin-top: auto;" class="glass-card">
         <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;">Overall Progress</div>
         <div id="sidebar-progress" style="font-family: var(--font-head); font-size: 1.2rem; font-weight: 700;">0%</div>
-        <button onclick="logout()" style="margin-top: 1rem; width: 100%; padding: 0.5rem; background: var(--bg-elev-2); color: var(--text-muted); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">Logout</button>
+        <button id="btn-logout" style="margin-top: 1rem; width: 100%; padding: 0.5rem; background: var(--bg-elev-2); color: var(--text-muted); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">Logout</button>
       </div>
     </aside>
 
@@ -162,18 +162,26 @@
 
   <script>
     // ==========================================
-    // SUPABASE CONFIG (PASTE YOUR KEYS HERE)
+    // SUPABASE CONFIG (MAKE SURE QUOTES ARE KEPT)
     // ==========================================
-    const SUPABASE_URL = 'https://gjesturknjnotdvwpjmc.supabase.co/rest/v1/';
-    const SUPABASE_KEY = 'sb_publishable_KabsRtlINJnHEVtEDwlEBw_wG_Tz_xY';
+    const SUPABASE_URL = 'https://gjesturknjnotdvwpjmc.supabase.co/rest/v1'; // <--- PASTE URL INSIDE THE QUOTES
+    const SUPABASE_KEY = 'sb_publishable_KabsRtlINJnHEVtEDwlEBw_wG_Tz_xY'; // <--- PASTE KEY INSIDE THE QUOTES
     
-    let supabase;
-    try {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    } catch (e) {
-        console.error("Supabase failed to load:", e);
-        document.getElementById('auth-error').innerText = "Error connecting to backend. Check console.";
-        document.getElementById('auth-error').style.display = 'block';
+    let supabase = null;
+    const errorEl = document.getElementById('auth-error');
+
+    // Check if user forgot to paste keys
+    if (SUPABASE_URL === 'PASTE_YOUR_URL_HERE' || SUPABASE_KEY === 'PASTE_YOUR_ANON_KEY_HERE') {
+        errorEl.innerText = "Error: You forgot to paste your Supabase URL and Key in the code!";
+        errorEl.style.display = 'block';
+    } else {
+        try {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        } catch (e) {
+            errorEl.innerText = "Error connecting to Supabase. Check console for details.";
+            errorEl.style.display = 'block';
+            console.error("Supabase Init Error:", e);
+        }
     }
 
     // ==========================================
@@ -190,12 +198,19 @@
     let currentUser = null;
 
     // ==========================================
-    // AUTH LOGIC (GLOBAL FUNCTIONS)
+    // EVENT LISTENERS (SAFE FROM REFERENCE ERRORS)
     // ==========================================
-    window.handleAuth = async function(type) {
+    document.getElementById('btn-login').addEventListener('click', () => handleAuth('login'));
+    document.getElementById('btn-signup').addEventListener('click', () => handleAuth('signup'));
+    document.getElementById('btn-logout').addEventListener('click', logout);
+
+    // ==========================================
+    // AUTH LOGIC
+    // ==========================================
+    async function handleAuth(type) {
+      if (!supabase) return; // Don't run if supabase failed to load
       const email = document.getElementById('auth-email').value;
       const password = document.getElementById('auth-password').value;
-      const errorEl = document.getElementById('auth-error');
       errorEl.style.display = 'none';
 
       try {
@@ -215,7 +230,8 @@
       }
     }
 
-    window.logout = async function() {
+    async function logout() {
+      if (!supabase) return;
       await supabase.auth.signOut();
       location.reload();
     }
@@ -223,17 +239,19 @@
     // ==========================================
     // INITIALIZATION
     // ==========================================
-    supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
-        currentUser = session.user;
-        document.getElementById('auth-modal').style.display = 'none';
-        document.getElementById('user-avatar').innerText = currentUser.email[0].toUpperCase();
-        await loadProgress();
-        initApp();
-      } else {
-        document.getElementById('auth-modal').style.display = 'flex';
-      }
-    });
+    if (supabase) {
+      supabase.auth.onAuthStateChange(async (event, session) => {
+        if (session) {
+          currentUser = session.user;
+          document.getElementById('auth-modal').style.display = 'none';
+          document.getElementById('user-avatar').innerText = currentUser.email[0].toUpperCase();
+          await loadProgress();
+          initApp();
+        } else {
+          document.getElementById('auth-modal').style.display = 'flex';
+        }
+      });
+    }
 
     async function loadProgress() {
       const { data } = await supabase.from('progress').select('*').eq('user_id', currentUser.id);
@@ -285,14 +303,20 @@
           const isDone = appState.completed[ch.id];
           const card = document.createElement('div');
           card.className = 'chapter-card';
-          card.innerHTML = `<div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;"><div style="font-weight: 600;">${ch.title}</div><span style="color: var(--accent-bright);">${ch.difficulty}</span></div><div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">Time: ${ch.time}</div><button class="btn-mark" onclick="toggleComplete('${ch.id}')">${isDone ? '✓ Completed' : 'Mark Done'}</button>`;
+          // Using data attributes instead of inline onclick to prevent errors
+          card.innerHTML = `<div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;"><div style="font-weight: 600;">${ch.title}</div><span style="color: var(--accent-bright);">${ch.difficulty}</span></div><div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">Time: ${ch.time}</div><button class="btn-mark toggle-btn" data-id="${ch.id}">${isDone ? '✓ Completed' : 'Mark Done'}</button>`;
           secEl.appendChild(card);
         });
         container.appendChild(secEl);
       });
+
+      // Attach listeners to newly created buttons
+      document.querySelectorAll('.toggle-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => toggleComplete(e.target.getAttribute('data-id')));
+      });
     }
 
-    window.toggleComplete = async function(id) {
+    async function toggleComplete(id) {
       appState.completed[id] = !appState.completed[id];
       await supabase.from('progress').upsert({ user_id: currentUser.id, chapter_id: id, is_completed: appState.completed[id] });
       renderSyllabus();
@@ -318,7 +342,7 @@
         o.innerText = `${b.book} - ${c.title}`;
         s.appendChild(o);
       }));
-      s.onchange = renderNotes;
+      s.addEventListener('change', renderNotes);
     }
 
     function renderNotes() {
@@ -337,23 +361,30 @@
     function renderQuiz() {
       const c = document.getElementById('quiz-container');
       if(currentQ >= quizQuestions.length) {
-        c.innerHTML = `<div style="text-align:center;"><h2>Score: ${score}/${quizQuestions.length}</h2><button class="btn-mark" style="margin-top:1rem;" onclick="setupQuiz()">Retake</button></div>`;
+        c.innerHTML = `<div style="text-align:center;"><h2>Score: ${score}/${quizQuestions.length}</h2><button id="retake-btn" class="btn-mark" style="margin-top:1rem;">Retake</button></div>`;
+        document.getElementById('retake-btn').addEventListener('click', setupQuiz);
         return;
       }
       const q = quizQuestions[currentQ];
-      c.innerHTML = `<h2 style="font-size: 1.2rem; margin-bottom: 1.5rem;">${q.q}</h2>${q.o.map((o,i)=>`<button class="quiz-option" onclick="selectAns(${i})">${o}</button>`).join('')}<button id="nxt" style="display:none; margin-top:1rem; background:var(--accent); color:white; border:none; padding:0.5rem 1rem;" onclick="nextQ()">Next</button>`;
+      c.innerHTML = `<h2 style="font-size: 1.2rem; margin-bottom: 1.5rem;">${q.q}</h2>${q.o.map((o,i)=>`<button class="quiz-option quiz-answer" data-idx="${i}">${o}</button>`).join('')}<button id="nxt" style="display:none; margin-top:1rem; background:var(--accent); color:white; border:none; padding:0.5rem 1rem;">Next</button>`;
+      
+      document.querySelectorAll('.quiz-answer').forEach(btn => {
+        btn.addEventListener('click', (e) => selectAns(parseInt(e.target.getAttribute('data-idx'))));
+      });
+      document.getElementById('nxt').addEventListener('click', nextQ);
     }
-    window.selectAns = function(i) {
+    
+    function selectAns(i) {
       const q = quizQuestions[currentQ];
-      document.querySelectorAll('.quiz-option').forEach((b, idx) => {
-        b.onclick = null;
+      document.querySelectorAll('.quiz-answer').forEach((b, idx) => {
         if(idx === q.a) b.classList.add('correct');
         if(idx === i && idx !== q.a) b.classList.add('wrong');
       });
       if(i === q.a) score++;
       document.getElementById('nxt').style.display = 'block';
     }
-    window.nextQ = function() { currentQ++; renderQuiz(); }
+    
+    function nextQ() { currentQ++; renderQuiz(); }
 
     // ==========================================
     // CHARTS LOGIC
